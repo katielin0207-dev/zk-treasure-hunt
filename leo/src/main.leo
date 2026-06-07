@@ -10,6 +10,9 @@ program treasure_hunt.aleo {
     // Stores the number of attempts each player has used
     mapping attempts: address => u8;
 
+    @noupgrade
+    constructor() {}
+
     // A private record held by the game master containing the hidden location.
     // Only the owner (game master) can read x and y.
     record HiddenTreasure {
@@ -17,7 +20,7 @@ program treasure_hunt.aleo {
         x:          u8,      // column 0-4
         y:          u8,      // row    0-4
         salt:       u64,     // random salt to prevent brute-force of commitment
-        commitment: field,   // public commitment: hash(x, y, salt)
+        commitment: field,   // public commitment: BHP256::hash(x, y, salt)
     }
 
     // -------------------------------------------------------------------------
@@ -26,7 +29,7 @@ program treasure_hunt.aleo {
     // Returns a HiddenTreasure record (stays private) and the public commitment
     // so players can verify the game master didn't change the location later.
     // -------------------------------------------------------------------------
-    transition hide_treasure(
+    fn hide_treasure(
         private x:    u8,
         private y:    u8,
         private salt: u64,
@@ -35,13 +38,15 @@ program treasure_hunt.aleo {
         assert(x < 5u8);
         assert(y < 5u8);
 
-        // Create a commitment to the location using BHP256.
-        // The commitment is a hash of (x, y, salt) — public, but irreversible
-        // without the salt, so the location stays hidden.
-        let commitment: field = BHP256::hash_to_field(salt);
+        // Commit to (x, y, salt) together so the commitment
+        // binds all three values — hiding the coordinates.
+        let packed: u128 = (salt as u128)
+            + ((x as u128) * 1_000_000u128)
+            + ((y as u128) * 100_000_000u128);
+        let commitment: field = BHP256::hash_to_field(packed);
 
         let treasure: HiddenTreasure = HiddenTreasure {
-            owner:      self.caller,
+            owner:      self.signer,
             x:          x,
             y:          y,
             salt:       salt,
@@ -58,29 +63,29 @@ program treasure_hunt.aleo {
     // The player's guess (guess_x, guess_y) is checked against the private
     // treasure record. The output (true/false) is revealed; the location is not.
     //
-    // Also tracks and enforces the 5-attempt limit on-chain.
+    // Also tracks and enforces the 5-attempt limit on-chain via finalize.
     // -------------------------------------------------------------------------
-    transition verify_guess(
-        private treasure:  HiddenTreasure,
-        public  player:    address,
-        private guess_x:   u8,
-        private guess_y:   u8,
-    ) -> (bool, Future) {
+    fn verify_guess(
+        treasure: HiddenTreasure,
+        public  player:   address,
+        private guess_x:  u8,
+        private guess_y:  u8,
+    ) -> (bool, Final) {
         assert(guess_x < 5u8);
         assert(guess_y < 5u8);
 
         let is_hit: bool = (treasure.x == guess_x) && (treasure.y == guess_y);
 
-        let f: Future = finalize_guess(player, is_hit);
-        return (is_hit, f);
+        return (is_hit, final {
+            finalize_guess(player);
+        });
     }
 
-    // Runs on-chain: enforces attempt limit, records result
-    async function finalize_guess(player: address, is_hit: bool) {
-        let used: u8 = attempts.get_or_use(player, 0u8);
+    // Runs on-chain: enforces attempt limit
+    final fn finalize_guess(player: address) {
+        let used: u8 = Mapping::get_or_use(attempts, player, 0u8);
         // Max 5 attempts
         assert(used < 5u8);
-        // Increment attempt counter (unless already won — simplification)
-        attempts.set(player, used + 1u8);
+        Mapping::set(attempts, player, used + 1u8);
     }
 }
