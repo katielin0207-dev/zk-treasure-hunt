@@ -2,6 +2,17 @@
 
 A Zero-Knowledge proof demo game built with **Leo (Aleo)** and vanilla HTML/CSS/JS.
 
+## 🚀 Deployed on Aleo Testnet
+
+| Item | Value |
+|------|-------|
+| **Program ID** | `treasure_hunt.aleo` |
+| **Network** | Aleo Testnet |
+| **Deployer** | `aleo192xccjkqdp5c8lwjdp9ldky5egun3jrg4m2fh05r0tldq8cu9qqqv847yj` |
+| **Deploy TX** | `at1pedzdd4wcu26grecrujx888qktyvd0450fld0mv9lefwejej2cgqvhm70t` |
+| **On-chain Interaction TX** | `at12nhjcehhu9622r28new94e9wdzh3w35yn9agcx870f8gf5s9mc8qjjj4yr` |
+| **Explorer** | [View on Testnet Explorer](https://testnet.explorer.provable.com/program/treasure_hunt.aleo) |
+
 ## How It Works
 
 1. A treasure is secretly placed on a 5×5 grid
@@ -42,20 +53,11 @@ cd leo/
 leo build
 ```
 
-### Execute transitions
+### Execute transitions locally
 
 **Game master hides treasure at (2, 3) with salt:**
 ```bash
 leo run hide_treasure 2u8 3u8 987654321u64
-```
-
-**Player guesses (2, 3):**
-```bash
-# Returns true (hit) or false (miss) — treasure coords stay private
-leo run verify_guess \
-  '{owner: aleo1..., x: 2u8, y: 3u8, salt: 987654321u64, commitment: 123field}' \
-  aleo1...player_address \
-  2u8 3u8
 ```
 
 ---
@@ -63,13 +65,13 @@ leo run verify_guess \
 ## File Structure
 
 ```
-treasure-hunt/
+zk-treasure-hunt/
 ├── index.html          ← Complete frontend (Harry Potter theme)
 ├── README.md
 └── leo/
     ├── program.json
     └── src/
-        └── main.leo    ← Leo ZK program
+        └── main.leo    ← Leo ZK program (Leo 4.x syntax)
 ```
 
 ---
@@ -78,7 +80,7 @@ treasure-hunt/
 
 | Layer    | Tech |
 |----------|------|
-| ZK Layer | Leo language · Aleo blockchain |
+| ZK Layer | Leo 4.x · Aleo Testnet |
 | Frontend | HTML · CSS · Vanilla JS |
 | Fonts    | Google Fonts (Cinzel Decorative, Crimson Text) |
-| Proof    | Mock simulation in browser (Groth16 in production) |
+| Proof    | Groth16 via Aleo VM |
